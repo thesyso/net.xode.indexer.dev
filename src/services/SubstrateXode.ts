@@ -8,7 +8,10 @@ import Table from "cli-table3";
 
 // DB 관련 함수들
 import { XodeAsset, XodeBlock, XodeTransaction } from "../dbconn/db";
-import { on } from "node:cluster";
+
+// queue 관련 함수들
+import { mqClient } from "../queue/mqClient";
+
 
 dotenv.config();
 // 자산 메타데이터 저장 모델 (예시)
@@ -124,6 +127,7 @@ async function onChain(api: ApiPromise, blockNumber: number) {
       docTx.push(dataTx);
     }
 
+    // 추후에 receiver 에서 필요한 데이터만 발행할 수 있도록 이관을 할것
     await XodeBlock.findOneAndUpdate(
       { blockNumber },
       {
@@ -142,6 +146,9 @@ async function onChain(api: ApiPromise, blockNumber: number) {
       { upsert: true },
     );
 
+    // 1. RabbitMQ에 메시지 발행 (블록 데이터 전체를 JSON 문자열로 변환하여 발행)
+    await onChainQueue("xode.node.block", JSON.stringify({ blockNumber, blockHash: blockHash.toHex(), rawData: { block: rawData, events: rawEvents }, summary: summary, transactions: docTx, timestamp: new Date() }));
+
     // 2. 개별 Transaction 저장 (Bulk Write 사용으로 성능 최적화)
     if (docTx.length > 0) {
       const operations = docTx.map((tx) => ({
@@ -151,7 +158,11 @@ async function onChain(api: ApiPromise, blockNumber: number) {
           upsert: true,
         },
       }));
+
       await XodeTransaction.bulkWrite(operations);
+      // 추후 receiver 에서 필요한 데이터만 발행할 수 있도록 이관을 할것
+      await onChainQueue("xode.node.transaction", JSON.stringify(docTx));    
+
     }
 
     /**
@@ -204,6 +215,15 @@ async function onChain(api: ApiPromise, blockNumber: number) {
   } catch (e) {
     console.error(chalk.red(`Error indexing block #${blockNumber}:`), e);
     return false;
+  }
+}
+
+async function onChainQueue(exchangeName: string, message: string) {
+  try {
+    await mqClient.initialize(exchangeName);
+    mqClient.publish(message);
+  } catch (error) {
+    console.error(chalk.red(`Error publishing to queue ${exchangeName}:`), error);
   }
 }
 
