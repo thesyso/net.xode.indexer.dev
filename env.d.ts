@@ -3,6 +3,14 @@ declare namespace NodeJS {
   interface ProcessEnv {
     XODE_RPC_URL: string;
     MONGO_URI: string;
+    MONGO_PORT: number;
+    MONGO_DB_NAME: string;
+    MONGO_USER: string;
+    MONGO_PASS: string;
     NODE_ENV: 'development' | 'production';
+    START_BLOCK: number;
+    RABBITMQ_URL: string;
+    RABBITMQ_EXHCNAGE_NAME: string;
+    RABBITMQ_QUEUE_NAME: string;
   }
 }
