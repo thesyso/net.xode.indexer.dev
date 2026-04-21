@@ -12,5 +12,8 @@ declare namespace NodeJS {
     RABBITMQ_URL: string;
     RABBITMQ_EXHCNAGE_NAME: string;
     RABBITMQ_QUEUE_NAME: string;
+    MASTER_API_KEY: string;
+    USER_API_KEY: string;
+    API_PORT: string;
   }
 }
