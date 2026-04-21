@@ -1,14 +1,30 @@
-# version: '3.8'
+version: '3.8'
 
 services:
   mongodb:
-    image: mongo:latest
+    image: mongo:8.2.6
     container_name: xode-mongodb
+    command: mongod --auth  # 이 부분을 추가하여 인증 모드 활성화
+    environment: # mongodb://moadmin:dexode2026@localhost:27017/
+      - MONGO_INITDB_ROOT_USERNAME=moadmin
+      - MONGO_INITDB_ROOT_PASSWORD=dexode2026
     ports:
       - "27017:27017"
     volumes:
       - xode-db-data:/data/db
     restart: always
-
+  postgres:
+    image: postgres:15.3
+    container_name: xode-postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=xode_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - xode-pg-data:/var/lib/postgresql/data
+    restart: always
 volumes:
   xode-db-data:
+  xode-pg-data:
